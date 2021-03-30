@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Data.SqlClient;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,13 +37,19 @@ namespace PerseToolkit
 
 			#endregion
 
-			string cmdcon = $"Server={config.ServerName + (string.IsNullOrEmpty(config.Instance) ? "" : $"\\{config.Instance}")};Database=master;{(string.IsNullOrEmpty(config.User) ? "Trusted_Connection=True;" : $"User Id={config.User};Password={config.Password};")};";
+
+			string cmdcon = "";
+
 
 			//  If i want use integrated security, send User = null 
-			//SqlConnection con = new SqlConnection(cmdcon);
+
+			if (String.IsNullOrEmpty(config.ConString)) cmdcon = $"Server={config.ServerName + (string.IsNullOrEmpty(config.Instance) ? "" : $"\\{config.Instance}")};Database=master;{(string.IsNullOrEmpty(config.User) ? "Trusted_Connection=True;" : $"User Id={config.User};Password={config.Password};")};";
+			else cmdcon = config.ConString;
+
+			SqlConnection con = new SqlConnection(cmdcon);
 
 			//  Debug
-			SqlConnection con = new SqlConnection($"Server=ANALISTA2\\SQLEXPRESS;Database=master;Trusted_Connection=True;");
+			//SqlConnection con = new SqlConnection($"Server=ANALISTA2\\SQLEXPRESS;Database=master;Trusted_Connection=True;");
 
 
 			//  Get the table List
@@ -84,7 +90,7 @@ namespace PerseToolkit
 				{
 					try
 					{
-						var cmd = new SqlCommand($"use {database_TO};\n" + preproc + "\nuse master;", con).ExecuteNonQuery();
+						var cmd = new SqlCommand($"use {database_TO};\n" + preproc.Replace("[DBNEW]", database_TO).Replace("[DBOLD]", database_FROM) + "\nuse master;", con).ExecuteNonQuery();
 					}
 					catch (Exception ex)
 					{
@@ -354,6 +360,38 @@ namespace PerseToolkit
 			Console.WriteLine(textInfo);
 
 			log += textInfo;
+
+
+			//  Postprocessing instructions on the new DB for prepare
+			string posproc = !File.Exists("posp.sql") ? null : File.ReadAllText("posp.sql");
+
+			if (posproc != null)
+			{
+				Console.WriteLine("\nExecute Posprocessing instructions (posp.sql)\n\n1) Yes\n2) No\n\nOption:");
+				char opc = Console.ReadKey().KeyChar;
+
+				if (opc == '1')
+				{
+					try
+					{
+						var cmd = new SqlCommand($"use {database_TO};\n" + posproc.Replace("[DBOLD]", database_FROM).Replace("[DBNEW]", database_FROM) + "\nuse master;", con).ExecuteNonQuery();
+
+					}
+					catch (Exception ex)
+					{
+						Console.WriteLine("(!) [ERROR 005] Ha ocurrido un error al ejecutar las instrucciones de posprocesamiento (posp.sql): \n" + ex.Message);
+
+						//Console.WriteLine("\nDebug:--------------------------\n" +
+							//$"use {database_TO};\n" + posproc.Replace("[DBOLD]", database_FROM).Replace("[DBNEW]", database_FROM) + "\nuse master;");
+
+					}
+				}
+			}
+			else Console.WriteLine("(!) 'posp.sql' Not found.\n"); 
+
+			con.Close();
+
+
 
 			char option;
 
@@ -875,7 +913,7 @@ namespace PerseToolkit
 				//	Add Foreign Keys
 				for (int i = 0; i < tableTo.Foreign_Keys.Length; i++)
 				{
-					bool addKey = false;
+					//bool addKey = false;
 
 					for (int j = 0; j < columnsRemaining.Count; j++)
                     {
