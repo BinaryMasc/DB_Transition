@@ -1,8 +1,8 @@
 # DB_Transition
 
-DB_Transition Es un archivo que está programado para ejecutar en consola que sirve para actualizar datos y esquemas de una base de datos **SQL SERVER**.
+DB_Transition Proyecto que está programado para ejecutar en consola, que sirve para actualizar datos y esquemas de una base de datos **SQL SERVER**.
 
-La aplicación es principalmente un archivo **.cs** que puede ser importado a algún otro proyecto para ser adaptado.
+La aplicación es principalmente una serie de archivos **.cs** que puede ser importado a algún otro proyecto para ser adaptado.
 
 El método principal:
 
